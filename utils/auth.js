@@ -1,9 +1,9 @@
 // auth utils
-import redisClient from './redis';
 import { v4 as uuidv4 } from 'uuid';
+import sha1 from 'sha1';
+import redisClient from './redis';
 
-
-export function verifyPassword(inputPassword, storedHash){
+export function verifyPassword(inputPassword, storedHash) {
   return sha1(inputPassword) === storedHash;
 }
 
@@ -13,18 +13,20 @@ export function generateToken() {
 
 export async function setTokenWithExpiration(token, userId) {
   const key = `auth_${token}`;
-  const expiration = 24 * 60 * 60; //24hrs in seconds
-  return await redisClient.set(key, userId, expiration);
+
+  // 24 hours in seconds
+  const expiration = 24 * 60 * 60;
+  return redisClient.set(key, userId, expiration);
 }
 
 export async function getTokenUserId(token) {
   const key = `auth_${token}`;
-  return await redisClient.get(key);
+  return redisClient.get(key);
 }
 
 export async function removeToken(token) {
   const key = `auth_${token}`;
-  return await redisClient.del(key);
+  return redisClient.del(key);
 }
 
 export function extractCredentialsBasic(authHeader) {
@@ -32,8 +34,7 @@ export function extractCredentialsBasic(authHeader) {
     const base64Credentials = authHeader.split(' ')[1];
     const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
     const [email, password] = credentials.split(':');
-    return [email, password]
-  } else {
-    return [null, null]
+    return [email, password];
   }
+  return [null, null];
 }

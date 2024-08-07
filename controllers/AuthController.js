@@ -1,19 +1,17 @@
-//authorization config
-import sha1 from 'sha1'
-import { v4 as uuidv4 } from 'uuid';
+// authorization config
+
+import sha1 from 'sha1';
 import dbClient from '../utils/db';
-import redisClient from '../utils/redis';
 import {
   extractCredentialsBasic,
   generateToken,
   setTokenWithExpiration,
   getTokenUserId,
-  removeToken
-} from '../utils/auth'
-
+  removeToken,
+} from '../utils/auth';
 
 export default class AuthController {
-  static async getConnect(req, res){
+  static async getConnect(req, res) {
     const authHeader = req.headers.authorization;
 
     const [email, password] = extractCredentialsBasic(authHeader);
@@ -21,7 +19,7 @@ export default class AuthController {
     if (!email || !password) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
- 
+
     const usersCollection = await dbClient.usersCollection();
     const user = await usersCollection.findOne({
       email,
@@ -29,7 +27,6 @@ export default class AuthController {
     });
 
     if (!user) {
-      console.log('I am here!')
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const token = generateToken();
@@ -39,18 +36,18 @@ export default class AuthController {
   }
 
   static async getDisconnect(req, res) {
-    const token  = req.header('X-TOKEN');
+    const token = req.header('X-TOKEN');
 
     if (!token) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const userId = await getTokenUserId(token);
 
-    if (!userId){
+    if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     await removeToken(token);
 
-    return res.status(204)
+    return res.status(204);
   }
 }
