@@ -47,7 +47,6 @@ export default class AuthController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     await removeToken(token);
-
-    return res.status(204);
+    return res.status(204).send();
   }
 }
