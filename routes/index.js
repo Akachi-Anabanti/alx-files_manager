@@ -8,7 +8,6 @@ function routes(API) {
   API.get('/stats', AppController.getStats);
 
   API.post('/users', UsersController.postNew);
-
 }
 
 export default routes;
