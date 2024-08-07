@@ -6,23 +6,28 @@ export default class UserController {
     const { email, password } = req.body;
 
     if (!email) {
-      res.status(400).json({error: "Missing email"});
+     return res.status(400).json({ error: "Missing email" });
     }
 
     if (!password) {
-      res.status(400).json({error: "Missing password"});
+      return res.status(400).json({ error: "Missing password" });
     }
 
-    let user = await dbClient.db.collection("users").findOne({ email: email });
+    const usersCollection = await dbClient.usersCollection();
+
+    let user = await usersCollection.findOne({ email: email });
 
     if (user) {
-      res.status(400).json({error: "Already exist"});
+      return res.status(400).json({ error: "Already exist" });
     }
-    user = await dbClient.db.collections("users").insertOne({
+    user = await usersCollection.insertOne({
       email: email,
       password: sha1(password),
     });
     
-    res.status(201).json({email: email, id: user._id});
+    return res.status(201).json({
+      email: email,
+      id: user.insertedId
+    });
   }
 }
