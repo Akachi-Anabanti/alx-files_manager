@@ -3,6 +3,7 @@
 import AppController from '../controllers/AppController';
 import UsersController from '../controllers/UsersController';
 import AuthController from '../controllers/AuthController';
+import FilesController from '../controllers/FilesController'
 
 function routes(API) {
   API.get('/status', AppController.getStatus);
@@ -13,6 +14,8 @@ function routes(API) {
 
   API.get('/connect', AuthController.getConnect);
   API.get('/disconnect', AuthController.getDisconnect);
+
+  API.post('/files', FilesController.postUpload);
 }
 
 export default routes;
