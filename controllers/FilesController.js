@@ -70,4 +70,55 @@ export default class FilesController {
 
     return res.status(201).json(file);
   }
+
+  static async getShow() {
+    const token = req.header('X-TOKEN');
+
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const userId = await getTokenUserId(token);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const fileId = req.params.id;
+    const file = await dbClient.filesCollection().findOne({
+      _id: ObjectId(fileId),
+      userId: ObjectId(userId),
+    });
+
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    return res.status(200).json(file);
+  }
+
+  static async getIndex(req, res) {
+    const token = req.header('X-TOKEN');
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const userId = await getTokenUserId(token);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const parentId = req.query.parentId || '0';
+    const page = parseInt(re.query.page) || 0;
+    const pageSize = 20;
+
+    const files = await dbClient.filesCollection().aggregate([{
+      $match: {
+        userId: ObjectId(userId),
+        parentId: parentId === '0' ? 0 : ObjectId(parentId),
+      }},
+      { $skip: page * pageSize },
+      { $limit: pageSize }
+    ]).toArray();
+
+    return res.status(200).json(files);
+  }
 }
