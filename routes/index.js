@@ -17,7 +17,7 @@ function routes(API) {
 
   API.post('/files', FilesController.postUpload);
   API.get('/files/:id', FilesController.getShow);
-  API.get('/files', FilesControler.getIndex);
+  API.get('/files', FilesController.getIndex);
 }
 
 export default routes;
