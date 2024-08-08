@@ -3,8 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 import { ObjectId } from 'mongodb';
-import redisClient from '../utils/redis';
 import { getTokenUserId } from '../utils/auth';
+import dbClient from '../utils/db';
 
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 
@@ -15,13 +15,19 @@ export default class FilesController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const userId = await getTokenUserId();
+    const userId = await getTokenUserId(token);
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { name, type, parentId = 0, isPublic = false, data } = req.body;
+    const {
+      name,
+      type,
+      parentId = 0,
+      isPublic = false,
+      data,
+    } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Missing name' });
@@ -36,7 +42,8 @@ export default class FilesController {
     }
 
     if (parentId !== 0) {
-      const parentFile = await dbClient.filesCollection().findOne({ _id: ObjectId(parentId) });
+      const filesCollection = await dbClient.filesCollection();
+      const parentFile = await filesCollection.findOne({ _id: ObjectId(parentId) });
       if (!parentFile) {
         return res.status(400).json({ error: 'Parent not found' });
       }
@@ -64,20 +71,20 @@ export default class FilesController {
 
       fileDocument.localPath = localPath;
     }
-
-    const result = await dbClient.filesCollection().insertOne(fileDocument);
+    const filesCollection = await dbClient.filesCollection();
+    const result = await filesCollection.insertOne(fileDocument);
     const file = result.ops[0];
 
     return res.status(201).json(file);
   }
 
-  static async getShow() {
+  static async getShow(req, res) {
     const token = req.header('X-TOKEN');
 
     if (!token) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    
+
     const userId = await getTokenUserId(token);
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -107,16 +114,15 @@ export default class FilesController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const parentId = req.query.parentId || '0';
-    const page = parseInt(re.query.page) || 0;
+    const page = Number(res.query.page) || 0;
     const pageSize = 20;
 
     const files = await dbClient.filesCollection().aggregate([{
       $match: {
         userId: ObjectId(userId),
         parentId: parentId === '0' ? 0 : ObjectId(parentId),
-      }},
-      { $skip: page * pageSize },
-      { $limit: pageSize }
+      },
+    }, { $skip: page * pageSize }, { $limit: pageSize },
     ]).toArray();
 
     return res.status(200).json(files);
