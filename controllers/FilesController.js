@@ -91,7 +91,8 @@ export default class FilesController {
     }
 
     const fileId = req.params.id;
-    const file = await dbClient.filesCollection().findOne({
+    const filesCollection = await dbClient.filesCollection();
+    const file = await filesCollection.findOne({
       _id: ObjectId(fileId),
       userId: ObjectId(userId),
     });
@@ -128,5 +129,57 @@ export default class FilesController {
     ]).toArray();
 
     return res.status(200).json(files);
+  }
+
+  static async putPublish(req, res) {
+    const token = req.header('X-TOKEN');
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const userId = await getTokenUserId(token);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const fileId = req.params.id;
+    const filesCollection = await dbClient.filesCollection();
+    const result = await filesCollection.findOneAndUpdate(
+      { _id: ObjectId(fileId), userId: ObjectId(userId) },
+      { $set: { isPublic: true } },
+      { returnDocument: 'after', upsert: false },
+    );
+
+    if (result.value === null) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    return res.status(200).json(result.value);
+  }
+
+  static async putUnpublish(req, res) {
+    const token = req.header('X-TOKEN');
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const userId = await getTokenUserId(token);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const fileId = req.params.id;
+    const filesCollection = await dbClient.filesCollection();
+    const result = await filesCollection.findOneAndUpdate(
+      { _id: ObjectId(fileId), userId: ObjectId(userId) },
+      { $set: { isPublic: false } },
+      { returnDocument: 'after', upsert: false },
+    );
+
+    if (result.value === null) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    return res.status(200).json(result.value);
   }
 }
