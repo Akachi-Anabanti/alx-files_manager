@@ -1,10 +1,13 @@
 // File controller
+import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 import { ObjectId } from 'mongodb';
 import { getTokenUserId } from '../utils/auth';
 import dbClient from '../utils/db';
+
+const mime = require('mime-types');
 
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 
@@ -181,5 +184,50 @@ export default class FilesController {
     }
 
     return res.status(200).json(result.value);
+  }
+
+  static async getFile(req, res) {
+    const token = req.header('X-TOKEN');
+    const fileId = req.params.id;
+
+    const filesCollection = await dbClient.filesCollection();
+
+    const file = await filesCollection.findOne({ _id: ObjectId(fileId) });
+
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    if (!file.isPublic && !token) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    const userId = await getTokenUserId(token);
+
+    if (!userId || String(file.userId) !== String(userId)) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    if (file.type === 'folder') {
+      return res.status(400).json({ error: 'A folder doesn\'t have content' });
+    }
+
+    if (!file.localPath) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    const accessAsync = promisify(fs.access);
+
+    try {
+      await accessAsync(file.localPath, fs.constants.F_OK);
+    } catch (error) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    const readFileAsync = promisify(fs.readFile);
+    const content = await readFileAsync(file.localPath);
+    const mimeType = mime.lookup(file.name) || 'application/octet-stream';
+    res.setHeader('Content-Type', mimeType);
+    return res.status(200).send(content);
   }
 }

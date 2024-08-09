@@ -20,6 +20,7 @@ function routes(API) {
   API.get('/files', FilesController.getIndex);
   API.put('/files/:id/publish', FilesController.putPublish);
   API.put('/files/:id/unpublish', FilesController.putUnpublish);
+  API.get('/files/:id/data', FilesController.getFile);
 }
 
 export default routes;
